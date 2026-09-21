@@ -13,7 +13,9 @@ const bookingRoutes = require("./routes/booking");
 
 const app = express();
 
-
+app.get("/", (req, res) => {
+    res.status(200).send("SEATEX API is running.");
+});
 
 
 // DATABASE CONNECTION
@@ -99,8 +101,9 @@ if (require.main === module) {
 
 
 // EXPORTS
+module.exports = app;
 
-module.exports = {
-    app,
-    mongoose
-};
+// module.exports = {
+//     app,
+//     mongoose
+// };
