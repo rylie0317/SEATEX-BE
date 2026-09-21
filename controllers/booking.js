@@ -269,8 +269,7 @@ module.exports.submitPaymentProof = async (req, res) => {
         const userId = req.user.id;
 
         // Get booking ID.
-        const bookingId =
-            req.params.bookingId;
+        const bookingId = req.params.bookingId;
 
         // Get payment information.
         const {
@@ -278,7 +277,11 @@ module.exports.submitPaymentProof = async (req, res) => {
             paymentType
         } = req.body;
 
-        // Check uploaded file.
+
+        // ==========================================
+        // VALIDATE FILE
+        // ==========================================
+
         if (!req.file) {
 
             return res.status(400).send({
@@ -288,7 +291,11 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Validate payment amount.
+
+        // ==========================================
+        // VALIDATE PAYMENT AMOUNT
+        // ==========================================
+
         if (
             paymentAmount === undefined ||
             paymentAmount === null ||
@@ -302,12 +309,15 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Convert payment amount to number.
+
         const amount =
             Number(paymentAmount);
 
-        // Make sure payment amount is valid.
-        if (!Number.isFinite(amount) || amount <= 0) {
+
+        if (
+            !Number.isFinite(amount) ||
+            amount <= 0
+        ) {
 
             return res.status(400).send({
                 message:
@@ -316,7 +326,11 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Validate payment type.
+
+        // ==========================================
+        // VALIDATE PAYMENT TYPE
+        // ==========================================
+
         if (
             paymentType !== "Downpayment" &&
             paymentType !== "Full Payment"
@@ -329,17 +343,20 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Find booking belonging to passenger.
+
+        // ==========================================
+        // FIND BOOKING
+        // ==========================================
+
         const booking =
             await Booking.findOne({
 
-                _id:
-                    bookingId,
+                _id: bookingId,
 
-                userId:
-                    userId
+                userId: userId
 
             });
+
 
         if (!booking) {
 
@@ -350,8 +367,11 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Do not allow payment proof
-        // after payment has already been approved.
+
+        // ==========================================
+        // PREVENT PAYMENT AFTER APPROVAL
+        // ==========================================
+
         if (
             booking.paymentStatus === "Approved"
         ) {
@@ -363,10 +383,17 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Determine the required payment amount.
+
+        // ==========================================
+        // DETERMINE REQUIRED AMOUNT
+        // ==========================================
+
         let requiredAmount;
 
-        if (paymentType === "Downpayment") {
+
+        if (
+            paymentType === "Downpayment"
+        ) {
 
             requiredAmount =
                 booking.downpaymentAmount;
@@ -378,10 +405,15 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Make sure the submitted amount
-        // matches the selected payment type.
+
+        // ==========================================
+        // VALIDATE PAYMENT AMOUNT
+        // ==========================================
+
         if (
-            Math.abs(amount - requiredAmount) > 0.01
+            Math.abs(
+                amount - requiredAmount
+            ) > 0.01
         ) {
 
             return res.status(400).send({
@@ -393,32 +425,52 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         }
 
-        // Save payment proof.
-        booking.paymentProof =
-            `/uploads/payment-proofs/${req.file.filename}`;
 
-        // Save actual payment information.
+        // ==========================================
+        // CONVERT IMAGE TO BASE64
+        // ==========================================
+
+        const base64Image =
+            req.file.buffer.toString("base64");
+
+        const paymentProof =
+            `data:${req.file.mimetype};base64,${base64Image}`;
+
+
+        // ==========================================
+        // SAVE PAYMENT INFORMATION
+        // ==========================================
+
+        booking.paymentProof =
+            paymentProof;
+
         booking.paymentAmount =
             amount;
 
         booking.paymentType =
             paymentType;
 
-        // Clear any previous failure reason.
         booking.failureReason =
             null;
 
-        // Set payment status to pending verification.
         booking.paymentStatus =
             "Pending Verification";
 
-        // Keep booking pending until admin approves payment.
         booking.bookingStatus =
             "Pending";
 
-        // Save booking.
+
+        // ==========================================
+        // SAVE BOOKING
+        // ==========================================
+
         const updatedBooking =
             await booking.save();
+
+
+        // ==========================================
+        // RESPONSE
+        // ==========================================
 
         return res.status(200).send({
 
@@ -432,13 +484,202 @@ module.exports.submitPaymentProof = async (req, res) => {
 
         });
 
+
     } catch (error) {
 
-        return errorHandler(error, req, res);
+        console.error(
+            "SUBMIT PAYMENT PROOF ERROR:",
+            error
+        );
+
+        return errorHandler(
+            error,
+            req,
+            res
+        );
 
     }
 
 };
+
+// module.exports.submitPaymentProof = async (req, res) => {
+
+//     try {
+
+//         // Get logged-in passenger.
+//         const userId = req.user.id;
+
+//         // Get booking ID.
+//         const bookingId =
+//             req.params.bookingId;
+
+//         // Get payment information.
+//         const {
+//             paymentAmount,
+//             paymentType
+//         } = req.body;
+
+//         // Check uploaded file.
+//         if (!req.file) {
+
+//             return res.status(400).send({
+//                 message:
+//                     "Proof of payment is required"
+//             });
+
+//         }
+
+//         // Validate payment amount.
+//         if (
+//             paymentAmount === undefined ||
+//             paymentAmount === null ||
+//             paymentAmount === ""
+//         ) {
+
+//             return res.status(400).send({
+//                 message:
+//                     "Payment amount is required"
+//             });
+
+//         }
+
+//         // Convert payment amount to number.
+//         const amount =
+//             Number(paymentAmount);
+
+//         // Make sure payment amount is valid.
+//         if (!Number.isFinite(amount) || amount <= 0) {
+
+//             return res.status(400).send({
+//                 message:
+//                     "Payment amount must be greater than 0"
+//             });
+
+//         }
+
+//         // Validate payment type.
+//         if (
+//             paymentType !== "Downpayment" &&
+//             paymentType !== "Full Payment"
+//         ) {
+
+//             return res.status(400).send({
+//                 message:
+//                     "Payment type must be Downpayment or Full Payment"
+//             });
+
+//         }
+
+//         // Find booking belonging to passenger.
+//         const booking =
+//             await Booking.findOne({
+
+//                 _id:
+//                     bookingId,
+
+//                 userId:
+//                     userId
+
+//             });
+
+//         if (!booking) {
+
+//             return res.status(404).send({
+//                 message:
+//                     "Booking not found"
+//             });
+
+//         }
+
+//         // Do not allow payment proof
+//         // after payment has already been approved.
+//         if (
+//             booking.paymentStatus === "Approved"
+//         ) {
+
+//             return res.status(400).send({
+//                 message:
+//                     "Payment has already been approved"
+//             });
+
+//         }
+
+//         // Determine the required payment amount.
+//         let requiredAmount;
+
+//         if (paymentType === "Downpayment") {
+
+//             requiredAmount =
+//                 booking.downpaymentAmount;
+
+//         } else {
+
+//             requiredAmount =
+//                 booking.totalFare;
+
+//         }
+
+//         // Make sure the submitted amount
+//         // matches the selected payment type.
+//         if (
+//             Math.abs(amount - requiredAmount) > 0.01
+//         ) {
+
+//             return res.status(400).send({
+
+//                 message:
+//                     `Payment amount must be exactly ₱${requiredAmount} for ${paymentType}`
+
+//             });
+
+//         }
+
+//         // Save payment proof.
+//         booking.paymentProof =
+//             `/uploads/payment-proofs/${req.file.filename}`;
+
+//         // Save actual payment information.
+//         booking.paymentAmount =
+//             amount;
+
+//         booking.paymentType =
+//             paymentType;
+
+//         // Clear any previous failure reason.
+//         booking.failureReason =
+//             null;
+
+//         // Set payment status to pending verification.
+//         booking.paymentStatus =
+//             "Pending Verification";
+
+//         // Keep booking pending until admin approves payment.
+//         booking.bookingStatus =
+//             "Pending";
+
+//         // Save booking.
+//         const updatedBooking =
+//             await booking.save();
+
+//         return res.status(200).send({
+
+//             success: true,
+
+//             message:
+//                 "Proof of payment submitted successfully",
+
+//             booking:
+//                 updatedBooking
+
+//         });
+
+//     } catch (error) {
+
+//         return errorHandler(error, req, res);
+
+//     }
+
+// };
 
 
 // ==========================================

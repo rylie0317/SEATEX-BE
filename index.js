@@ -73,8 +73,8 @@ app.use(cors(corsOptions));
 // STATIC FILES
 
 // Serve uploaded payment proofs so administrators can review them.
-const path = require("path");
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// const path = require("path");
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 // ROUTES
