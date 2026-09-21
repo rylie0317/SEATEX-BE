@@ -55,7 +55,8 @@ const corsOptions = {
 
     // Allow requests from the frontend.
     origin: [
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://seatex-fe.vercel.app"
     ],
 
     // Allow authorization headers and credentials.
