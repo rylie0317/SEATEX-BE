@@ -125,7 +125,7 @@ module.exports.bookTrip = async (req, res) => {
             success: true,
 
             message:
-                "Booking created. Please proceed with payment.",
+                "Booking created please proceed with payment",
 
             booking:
                 savedBooking
